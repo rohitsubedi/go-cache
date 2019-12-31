@@ -20,10 +20,11 @@ var (
 )
 
 var (
-	ErrCacheNotFound   = errors.New("cache lib: cache not found")
-	ErrCacheExpired    = errors.New("cache lib: cache expired")
-	ErrConnectingRedis = errors.New("cache lib: cannot connect to redis server")
-	ErrCreatingFile    = errors.New("cache lib: cannot create file on the given path")
+	ErrCacheNotFound      = errors.New("cache lib: cache not found")
+	ErrCacheExpired       = errors.New("cache lib: cache expired")
+	ErrConnectingRedis    = errors.New("cache lib: cannot connect to redis server")
+	ErrCreatingFile       = errors.New("cache lib: cannot create file on the given path")
+	ErrCacheAlreadyExists = errors.New("cache lib: cache already exists")
 )
 
 type Cache interface {
@@ -89,49 +90,26 @@ func NewRedisCache(expiration time.Duration, host, password string) (Cache, erro
 // This will set the value to the key depending on the cache type user selects (memory, file, redis).
 // If cache already exists for given key, it will return error. Returns error if there are any
 func (c *cache) Add(key string, value interface{}) error {
-	c.mu.RLock()
+	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	var expiration int64
-	val, err := json.MarshalIndent(value, "", " ")
-	if err != nil {
-		return err
+	if c.has(key) {
+		return ErrCacheAlreadyExists
 	}
 
-	if c.expiration > defaultExpiration {
-		expiration = time.Now().Add(c.expiration).UnixNano()
-	}
-
-	switch c.cacheType {
-	case cacheTypeDefault:
-		c.items[key] = item{
-			value:      val,
-			expiration: expiration,
-		}
-	case cacheTypeFile:
-		file, err := os.OpenFile(c.filePath+"/"+key, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(0644))
-		if err != nil {
-			return fmt.Errorf("%v: %w", ErrCreatingFile, err)
-		}
-
-		if _, err := file.Write(val); err != nil {
-			return err
-		}
-	case cacheTypeRedis:
-		if err := c.redisClient.Set(key, val, c.expiration).Err(); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return c.set(key, value)
 }
 
 // This will set the value to the key depending on the cache type user selects (memory, file, redis).
 // This will override the existing value in the cache. Returns error if there are any
 func (c *cache) Set(key string, value interface{}) error {
-	c.mu.RLock()
+	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	return c.set(key, value)
+}
+
+func (c *cache) set(key string, value interface{}) error {
 	var expiration int64
 	val, err := json.MarshalIndent(value, "", " ")
 	if err != nil {
@@ -169,8 +147,12 @@ func (c *cache) Set(key string, value interface{}) error {
 // This will return boolean if the cache exists and is valid
 func (c *cache) Has(key string) bool {
 	c.mu.RLock()
-	defer c.mu.Unlock()
+	defer c.mu.RUnlock()
 
+	return c.has(key)
+}
+
+func (c *cache) has(key string) bool {
 	switch c.cacheType {
 	case cacheTypeDefault:
 		item, found := c.items[key]
@@ -207,7 +189,7 @@ func (c *cache) Has(key string) bool {
 // This returns the value in the cache for the given key if its valid. Returns error if cache doesn't exist or expired
 func (c *cache) Get(key string) ([]byte, error) {
 	c.mu.RLock()
-	defer c.mu.Unlock()
+	defer c.mu.RUnlock()
 
 	switch c.cacheType {
 	case cacheTypeDefault:
@@ -225,7 +207,7 @@ func (c *cache) Get(key string) ([]byte, error) {
 // Returns error if cache doesn't exist or expired
 func (c *cache) Pull(key string) ([]byte, error) {
 	c.mu.RLock()
-	defer c.mu.Unlock()
+	defer c.mu.RUnlock()
 
 	switch c.cacheType {
 	case cacheTypeDefault:
