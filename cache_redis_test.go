@@ -11,7 +11,7 @@ import (
 func TestRedisCacheSetSuccessWithString(t *testing.T) {
 	key := "cache_key"
 	val := "value"
-	cache, err := NewRedisCache(5 * time.Minute, "0.0.0.0:6379", "redis_password")
+	cache, err := NewRedisCache(5 * time.Second, "0.0.0.0:6379", "redis_password")
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -30,7 +30,7 @@ func TestRedisCacheSetSuccessWithString(t *testing.T) {
 func TestRedisCacheSetSuccessWithInt(t *testing.T) {
 	key := "cache_key"
 	val := 1
-	cache, err := NewRedisCache(5 * time.Minute, "0.0.0.0:6379", "redis_password")
+	cache, err := NewRedisCache(5 * time.Second, "0.0.0.0:6379", "redis_password")
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -49,7 +49,7 @@ func TestRedisCacheSetSuccessWithInt(t *testing.T) {
 func TestRedisCacheSetSuccessWithBoolean(t *testing.T) {
 	key := "cache_key"
 	val := true
-	cache, err := NewRedisCache(5 * time.Minute, "0.0.0.0:6379", "redis_password")
+	cache, err := NewRedisCache(5 * time.Second, "0.0.0.0:6379", "redis_password")
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -71,7 +71,7 @@ func TestRedisCacheSetSuccessWithStruct_set(t *testing.T) {
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewRedisCache(5 * time.Minute, "0.0.0.0:6379", "redis_password")
+	cache, err := NewRedisCache(5 * time.Second, "0.0.0.0:6379", "redis_password")
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -92,7 +92,7 @@ func TestRedisCacheSetSuccessWithStruct_set(t *testing.T) {
 func TestRedisCacheAddSuccessWithString(t *testing.T) {
 	key := "cache_key1"
 	val := "value"
-	cache, err := NewRedisCache(5 * time.Minute, "0.0.0.0:6379", "redis_password")
+	cache, err := NewRedisCache(5 * time.Second, "0.0.0.0:6379", "redis_password")
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -111,7 +111,7 @@ func TestRedisCacheAddSuccessWithString(t *testing.T) {
 func TestRedisCacheAddSuccessWithInt(t *testing.T) {
 	key := "cache_key2"
 	val := 1
-	cache, err := NewRedisCache(5 * time.Minute, "0.0.0.0:6379", "redis_password")
+	cache, err := NewRedisCache(5 * time.Second, "0.0.0.0:6379", "redis_password")
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -130,7 +130,7 @@ func TestRedisCacheAddSuccessWithInt(t *testing.T) {
 func TestRedisCacheAddSuccessWithBoolean(t *testing.T) {
 	key := "cache_key3"
 	val := true
-	cache, err := NewRedisCache(5 * time.Minute, "0.0.0.0:6379", "redis_password")
+	cache, err := NewRedisCache(5 * time.Second, "0.0.0.0:6379", "redis_password")
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -152,7 +152,7 @@ func TestRedisCacheAddSuccessWithStruct(t *testing.T) {
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewRedisCache(5 * time.Minute, "0.0.0.0:6379", "redis_password")
+	cache, err := NewRedisCache(5 * time.Second, "0.0.0.0:6379", "redis_password")
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -174,7 +174,7 @@ func TestRedisCacheAddErrorCacheAlreadyExists(t *testing.T) {
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewRedisCache(5 * time.Minute, "0.0.0.0:6379", "redis_password")
+	cache, err := NewRedisCache(5 * time.Second, "0.0.0.0:6379", "redis_password")
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -190,7 +190,7 @@ func TestRedisCachePullSuccessWithStruct(t *testing.T) {
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewRedisCache(5 * time.Minute, "0.0.0.0:6379", "redis_password")
+	cache, err := NewRedisCache(5 * time.Second, "0.0.0.0:6379", "redis_password")
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)

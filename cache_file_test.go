@@ -11,7 +11,7 @@ import (
 func TestFileCacheSetSuccessWithString(t *testing.T) {
 	key := "cache_key"
 	val := "value"
-	cache, err := NewFileCache(5 * time.Minute, "cache")
+	cache, err := NewFileCache(5 * time.Second, "cache")
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -30,7 +30,7 @@ func TestFileCacheSetSuccessWithString(t *testing.T) {
 func TestFileCacheSetSuccessWithInt(t *testing.T) {
 	key := "cache_key"
 	val := 1
-	cache, err := NewFileCache(5 * time.Minute, "cache")
+	cache, err := NewFileCache(5 * time.Second, "cache")
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -49,7 +49,7 @@ func TestFileCacheSetSuccessWithInt(t *testing.T) {
 func TestFileCacheSetSuccessWithBoolean(t *testing.T) {
 	key := "cache_key"
 	val := true
-	cache, err := NewFileCache(5 * time.Minute, "cache")
+	cache, err := NewFileCache(5 * time.Second, "cache")
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -71,7 +71,7 @@ func TestFileCacheSetSuccessWithStruct_set(t *testing.T) {
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewFileCache(5 * time.Minute, "cache")
+	cache, err := NewFileCache(5 * time.Second, "cache")
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -92,7 +92,7 @@ func TestFileCacheSetSuccessWithStruct_set(t *testing.T) {
 func TestFileCacheAddSuccessWithString(t *testing.T) {
 	key := "cache_key1"
 	val := "value"
-	cache, err := NewFileCache(5 * time.Minute, "cache")
+	cache, err := NewFileCache(5 * time.Second, "cache")
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -111,7 +111,7 @@ func TestFileCacheAddSuccessWithString(t *testing.T) {
 func TestFileCacheAddSuccessWithInt(t *testing.T) {
 	key := "cache_key2"
 	val := 1
-	cache, err := NewFileCache(5 * time.Minute, "cache")
+	cache, err := NewFileCache(5 * time.Second, "cache")
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -130,7 +130,7 @@ func TestFileCacheAddSuccessWithInt(t *testing.T) {
 func TestFileCacheAddSuccessWithBoolean(t *testing.T) {
 	key := "cache_key3"
 	val := true
-	cache, err := NewFileCache(5 * time.Minute, "cache")
+	cache, err := NewFileCache(5 * time.Second, "cache")
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -152,7 +152,7 @@ func TestFileCacheAddSuccessWithStruct(t *testing.T) {
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewFileCache(5 * time.Minute, "cache")
+	cache, err := NewFileCache(5 * time.Second, "cache")
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -174,7 +174,7 @@ func TestFileCacheAddErrorCacheAlreadyExists(t *testing.T) {
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewMemoryCache(5 * time.Minute)
+	cache, err := NewMemoryCache(5 * time.Second)
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -190,7 +190,7 @@ func TestFileCachePullSuccessWithStruct(t *testing.T) {
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewMemoryCache(5 * time.Minute)
+	cache, err := NewMemoryCache(5 * time.Second)
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)

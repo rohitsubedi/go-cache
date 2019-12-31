@@ -16,7 +16,7 @@ type testItem struct {
 func TestMemoryCacheSetSuccessWithString(t *testing.T) {
 	key := "cache_key"
 	val := "value"
-	cache, err := NewMemoryCache(5 * time.Minute)
+	cache, err := NewMemoryCache(5 * time.Second)
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -35,7 +35,7 @@ func TestMemoryCacheSetSuccessWithString(t *testing.T) {
 func TestMemoryCacheSetSuccessWithInt(t *testing.T) {
 	key := "cache_key"
 	val := 1
-	cache, err := NewMemoryCache(5 * time.Minute)
+	cache, err := NewMemoryCache(5 * time.Second)
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -54,7 +54,7 @@ func TestMemoryCacheSetSuccessWithInt(t *testing.T) {
 func TestMemoryCacheSetSuccessWithBoolean(t *testing.T) {
 	key := "cache_key"
 	val := true
-	cache, err := NewMemoryCache(5 * time.Minute)
+	cache, err := NewMemoryCache(5 * time.Second)
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -76,7 +76,7 @@ func TestMemoryCacheSetSuccessWithStruct_set(t *testing.T) {
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewMemoryCache(5 * time.Minute)
+	cache, err := NewMemoryCache(5 * time.Second)
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -96,7 +96,7 @@ func TestMemoryCacheSetSuccessWithStruct_set(t *testing.T) {
 func TestMemoryCacheAddSuccessWithString(t *testing.T) {
 	key := "cache_key"
 	val := "value"
-	cache, err := NewMemoryCache(5 * time.Minute)
+	cache, err := NewMemoryCache(5 * time.Second)
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -115,7 +115,7 @@ func TestMemoryCacheAddSuccessWithString(t *testing.T) {
 func TestMemoryCacheAddSuccessWithInt(t *testing.T) {
 	key := "cache_key"
 	val := 1
-	cache, err := NewMemoryCache(5 * time.Minute)
+	cache, err := NewMemoryCache(5 * time.Second)
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -134,7 +134,7 @@ func TestMemoryCacheAddSuccessWithInt(t *testing.T) {
 func TestMemoryCacheAddSuccessWithBoolean(t *testing.T) {
 	key := "cache_key"
 	val := true
-	cache, err := NewMemoryCache(5 * time.Minute)
+	cache, err := NewMemoryCache(5 * time.Second)
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -156,7 +156,7 @@ func TestMemoryCacheAddSuccessWithStruct(t *testing.T) {
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewMemoryCache(5 * time.Minute)
+	cache, err := NewMemoryCache(5 * time.Second)
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -178,7 +178,7 @@ func TestMemoryCacheAddErrorCacheAlreadyExists(t *testing.T) {
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewMemoryCache(5 * time.Minute)
+	cache, err := NewMemoryCache(5 * time.Second)
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -194,7 +194,7 @@ func TestMemoryCachePullSuccessWithStruct(t *testing.T) {
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewMemoryCache(5 * time.Minute)
+	cache, err := NewMemoryCache(5 * time.Second)
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
