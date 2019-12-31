@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -35,7 +36,7 @@ type Cache interface {
 	Has(key string) bool
 }
 
-type item struct {
+type cacheItem struct {
 	value      []byte
 	expiration int64
 }
@@ -44,28 +45,68 @@ type cache struct {
 	mu          sync.RWMutex
 	cacheType   string
 	expiration  time.Duration
-	items       map[string]item
+	items       map[string]cacheItem
 	filePath    string
+	cacheFiles  map[string]struct{}
 	redisClient *redis.Client
+	cleaner     *cacheCleaner
+}
+
+type cacheCleaner struct {
+	interval *time.Timer
+	stop     chan bool
 }
 
 // expiration time.Duration duration for cache to expire. 0*time.Second indicates the cache will never expire
 func NewMemoryCache(expiration time.Duration) (Cache, error) {
-	return &cache{
+	var cleaner *cacheCleaner
+
+	if expiration <= defaultExpiration {
+		expiration = defaultExpiration
+	} else {
+		cleaner = &cacheCleaner{
+			interval: time.NewTimer(expiration),
+			stop:     make(chan bool),
+		}
+	}
+
+	cache := &cache{
 		cacheType:  cacheTypeDefault,
 		expiration: expiration,
-		items:      make(map[string]item),
-	}, nil
+		items:      make(map[string]cacheItem),
+		cleaner:    cleaner,
+	}
+
+	cache.cleanExpiredCache()
+
+	return cache, nil
 }
 
 // expiration time.Duration duration for cache to expire. 0*time.Second indicates the cache will never expire
 // path string directory path where the cache file can be stored. It should have write permission
 func NewFileCache(expiration time.Duration, path string) (Cache, error) {
-	return &cache{
+	var cleaner *cacheCleaner
+
+	if expiration <= defaultExpiration {
+		expiration = defaultExpiration
+	} else {
+		cleaner = &cacheCleaner{
+			interval: time.NewTimer(expiration),
+			stop:     make(chan bool),
+		}
+	}
+
+	cache := &cache{
 		cacheType:  cacheTypeFile,
 		expiration: expiration,
 		filePath:   path,
-	}, nil
+		cacheFiles: make(map[string]struct{}),
+		cleaner:    cleaner,
+	}
+
+	cache.cleanExpiredCache()
+
+	return cache, nil
 }
 
 // expiration time.Duration duration for cache to expire. 0*time.Second indicates the cache will never expire
@@ -78,6 +119,10 @@ func NewRedisCache(expiration time.Duration, host, password string) (Cache, erro
 
 	if _, err := client.Ping().Result(); err != nil {
 		return nil, fmt.Errorf("%v: %w", ErrConnectingRedis, err)
+	}
+
+	if expiration <= defaultExpiration {
+		expiration = defaultExpiration
 	}
 
 	return &cache{
@@ -122,7 +167,7 @@ func (c *cache) set(key string, value interface{}) error {
 
 	switch c.cacheType {
 	case cacheTypeDefault:
-		c.items[key] = item{
+		c.items[key] = cacheItem{
 			value:      val,
 			expiration: expiration,
 		}
@@ -135,6 +180,8 @@ func (c *cache) set(key string, value interface{}) error {
 		if _, err := file.Write(val); err != nil {
 			return err
 		}
+
+		c.cacheFiles[key] = struct{}{}
 	case cacheTypeRedis:
 		if err := c.redisClient.Set(key, val, c.expiration).Err(); err != nil {
 			return err
@@ -152,6 +199,7 @@ func (c *cache) Has(key string) bool {
 	return c.has(key)
 }
 
+// This will return boolean if the cache exists and is valid
 func (c *cache) has(key string) bool {
 	switch c.cacheType {
 	case cacheTypeDefault:
@@ -162,6 +210,7 @@ func (c *cache) has(key string) bool {
 
 		if item.expiration > 0 {
 			if time.Now().UnixNano() > item.expiration {
+				delete(c.items, key)
 				return false
 			}
 		}
@@ -186,7 +235,7 @@ func (c *cache) has(key string) bool {
 	return true
 }
 
-// This returns the value in the cache for the given key if its valid. Returns error if cache doesn't exist or expired
+// This returns the value in the cache for the given key if its valid. Returns error if cache doesn'interval exist or expired
 func (c *cache) Get(key string) ([]byte, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -204,7 +253,7 @@ func (c *cache) Get(key string) ([]byte, error) {
 }
 
 // This returns the value in the cache for the given key if it's valid (AND also removes the cache for the given key).
-// Returns error if cache doesn't exist or expired
+// Returns error if cache doesn'interval exist or expired
 func (c *cache) Pull(key string) ([]byte, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
@@ -230,6 +279,7 @@ func (c *cache) getMemoryCache(key string, removeCurrent bool) ([]byte, error) {
 
 	if item.expiration > 0 {
 		if time.Now().UnixNano() > item.expiration {
+			delete(c.items, key)
 			return nil, ErrCacheExpired
 		}
 	}
@@ -277,4 +327,39 @@ func (c *cache) getRedisCache(key string, removeCurrent bool) ([]byte, error) {
 	}
 
 	return []byte(val), nil
+}
+
+func (c *cache) cleanExpiredCache() {
+	if c.cleaner == nil {
+		return
+	}
+
+	runtime.SetFinalizer(c.cleaner, stopCleaningRoutine)
+
+	go func() {
+		for {
+			select {
+			case <-c.cleaner.interval.C:
+				switch c.cacheType {
+				case cacheTypeDefault:
+					for key, _ := range c.items {
+						c.has(key)
+					}
+				case cacheTypeFile:
+					for key, _ := range c.cacheFiles {
+						go c.has(key)
+					}
+				}
+
+				c.cleaner.interval.Reset(c.expiration)
+			case <-c.cleaner.stop:
+				c.cleaner.interval.Stop()
+			}
+
+		}
+	}()
+}
+
+func stopCleaningRoutine(cleaner *cacheCleaner) {
+	cleaner.stop <- true
 }
