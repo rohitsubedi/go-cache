@@ -173,15 +173,28 @@ func (c *cache) Has(key string) bool {
 
 	switch c.cacheType {
 	case cacheTypeDefault:
-		if _, err := c.getMemoryCache(key, false); err != nil {
+		item, found := c.items[key]
+		if !found {
 			return false
 		}
+
+		if item.expiration > 0 {
+			if time.Now().UnixNano() > item.expiration {
+				return false
+			}
+		}
 	case cacheTypeFile:
-		if _, err := c.getFileCache(key, false); err != nil {
+		fileInfo, err := os.Stat(c.filePath + "/" + key)
+		if err != nil {
+			return false
+		}
+
+		if c.expiration > 0 && time.Now().UnixNano() > (c.expiration.Nanoseconds()+fileInfo.ModTime().UnixNano()) {
+			_ = os.Remove(c.filePath + "/" + key)
 			return false
 		}
 	case cacheTypeRedis:
-		if _, err := c.getRedisCache(key, false); err != nil {
+		if _, err := c.redisClient.Get(key).Result(); err != nil {
 			return false
 		}
 	default:
