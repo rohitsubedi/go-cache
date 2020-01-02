@@ -115,7 +115,6 @@ func NewFileCache(expiration time.Duration, path string) (Cache, error) {
 }
 
 // expiration time.Duration duration for cache to expire. 0*time.Second indicates the cache will never expire
-// path string directory path where the cache file can be stored. It should have write permission
 func NewRedisCache(expiration time.Duration, host, password string) (Cache, error) {
 	client := redis.NewClient(&redis.Options{
 		Addr:     host,
@@ -137,15 +136,21 @@ func NewRedisCache(expiration time.Duration, host, password string) (Cache, erro
 	}, nil
 }
 
-func NewMemCache(expiration time.Duration, server string) (Cache, error) {
+// expiration time.Duration duration for cache to expire. 0*time.Second indicates the cache will never expire
+func NewMemCache(expiration time.Duration, server ...string) (Cache, error) {
 	if expiration <= defaultExpiration {
 		expiration = defaultExpiration
+	}
+
+	memCacheClient := memcache.New(server...)
+	if err := memCacheClient.Ping(); err != nil {
+		return nil, err
 	}
 
 	return &cache{
 		cacheType:      cacheTypeMemcache,
 		expiration:     expiration,
-		memCacheClient: memcache.New(server),
+		memCacheClient: memCacheClient,
 	}, nil
 }
 
