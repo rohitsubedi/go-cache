@@ -205,3 +205,21 @@ func TestMemoryCachePullSuccessWithStruct(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, cache.Has(key))
 }
+
+func TestMemoryCacheExpired(t *testing.T) {
+	key := "cache_key"
+	val := testItem{
+		Key:   "Rohit",
+		Value: "Subedi",
+	}
+	cache, err := NewMemoryCache(5 * time.Second)
+	assert.NoError(t, err)
+
+	err = cache.Set(key, val)
+	assert.NoError(t, err)
+	assert.True(t, cache.Has(key))
+
+	time.Sleep(5 * time.Second)
+	_, err = cache.Pull(key)
+	assert.Error(t, err)
+}
