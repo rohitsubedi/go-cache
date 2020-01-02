@@ -8,15 +8,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testItem struct {
-	Key string
-	Value string
-}
-
-func TestMemoryCacheSetSuccessWithString(t *testing.T) {
+func TestMemCacheSetSuccessWithString(t *testing.T) {
 	key := "cache_key"
 	val := "value"
-	cache, err := NewMemoryCache(5 * time.Second)
+	cache, err := NewMemCache(5 * time.Second, "0.0.0.0:11211")
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -32,10 +27,10 @@ func TestMemoryCacheSetSuccessWithString(t *testing.T) {
 	assert.Equal(t, val, *cacheValue)
 }
 
-func TestMemoryCacheSetSuccessWithInt(t *testing.T) {
+func TestMemCacheSetSuccessWithInt(t *testing.T) {
 	key := "cache_key"
 	val := 1
-	cache, err := NewMemoryCache(5 * time.Second)
+	cache, err := NewMemCache(5 * time.Second, "0.0.0.0:11211")
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -51,10 +46,10 @@ func TestMemoryCacheSetSuccessWithInt(t *testing.T) {
 	assert.Equal(t, val, *cacheValue)
 }
 
-func TestMemoryCacheSetSuccessWithBoolean(t *testing.T) {
+func TestMemCacheSetSuccessWithBoolean(t *testing.T) {
 	key := "cache_key"
 	val := true
-	cache, err := NewMemoryCache(5 * time.Second)
+	cache, err := NewMemCache(5 * time.Second, "0.0.0.0:11211")
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -70,13 +65,13 @@ func TestMemoryCacheSetSuccessWithBoolean(t *testing.T) {
 	assert.Equal(t, val, *cacheValue)
 }
 
-func TestMemoryCacheSetSuccessWithStruct_set(t *testing.T) {
+func TestMemCacheSetSuccessWithStruct_set(t *testing.T) {
 	key := "cache_key"
 	val := testItem{
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewMemoryCache(5 * time.Second)
+	cache, err := NewMemCache(5 * time.Second, "0.0.0.0:11211")
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
@@ -93,10 +88,11 @@ func TestMemoryCacheSetSuccessWithStruct_set(t *testing.T) {
 }
 
 
-func TestMemoryCacheAddSuccessWithString(t *testing.T) {
-	key := "cache_key"
+
+func TestMemCacheAddSuccessWithString(t *testing.T) {
+	key := "cache_key1"
 	val := "value"
-	cache, err := NewMemoryCache(5 * time.Second)
+	cache, err := NewMemCache(5 * time.Second, "0.0.0.0:11211")
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -112,10 +108,10 @@ func TestMemoryCacheAddSuccessWithString(t *testing.T) {
 	assert.Equal(t, val, *cacheValue)
 }
 
-func TestMemoryCacheAddSuccessWithInt(t *testing.T) {
-	key := "cache_key"
+func TestMemCacheAddSuccessWithInt(t *testing.T) {
+	key := "cache_key2"
 	val := 1
-	cache, err := NewMemoryCache(5 * time.Second)
+	cache, err := NewMemCache(5 * time.Second, "0.0.0.0:11211")
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -131,10 +127,10 @@ func TestMemoryCacheAddSuccessWithInt(t *testing.T) {
 	assert.Equal(t, val, *cacheValue)
 }
 
-func TestMemoryCacheAddSuccessWithBoolean(t *testing.T) {
-	key := "cache_key"
+func TestMemCacheAddSuccessWithBoolean(t *testing.T) {
+	key := "cache_key3"
 	val := true
-	cache, err := NewMemoryCache(5 * time.Second)
+	cache, err := NewMemCache(5 * time.Second, "0.0.0.0:11211")
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -150,13 +146,13 @@ func TestMemoryCacheAddSuccessWithBoolean(t *testing.T) {
 	assert.Equal(t, val, *cacheValue)
 }
 
-func TestMemoryCacheAddSuccessWithStruct(t *testing.T) {
-	key := "cache_key"
+func TestMemCacheAddSuccessWithStruct(t *testing.T) {
+	key := "cache_key4"
 	val := testItem{
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewMemoryCache(5 * time.Second)
+	cache, err := NewMemCache(5 * time.Second, "0.0.0.0:11211")
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -172,13 +168,13 @@ func TestMemoryCacheAddSuccessWithStruct(t *testing.T) {
 	assert.Equal(t, val, *cacheValue)
 }
 
-func TestMemoryCacheAddErrorCacheAlreadyExists(t *testing.T) {
-	key := "cache_key"
+func TestMemCacheAddErrorCacheAlreadyExists(t *testing.T) {
+	key := "cache_key5"
 	val := testItem{
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewMemoryCache(5 * time.Second)
+	cache, err := NewMemCache(5 * time.Second, "0.0.0.0:11211")
 	assert.NoError(t, err)
 
 	err = cache.Add(key, val)
@@ -188,16 +184,16 @@ func TestMemoryCacheAddErrorCacheAlreadyExists(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestMemoryCachePullSuccessWithStruct(t *testing.T) {
+func TestMemCachePullSuccessWithStruct(t *testing.T) {
 	key := "cache_key"
 	val := testItem{
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewMemoryCache(5 * time.Second)
+	cache, err := NewMemCache(5 * time.Second, "0.0.0.0:11211")
 	assert.NoError(t, err)
 
-	err = cache.Add(key, val)
+	err = cache.Set(key, val)
 	assert.NoError(t, err)
 	assert.True(t, cache.Has(key))
 
@@ -206,20 +202,20 @@ func TestMemoryCachePullSuccessWithStruct(t *testing.T) {
 	assert.False(t, cache.Has(key))
 }
 
-func TestMemoryCacheExpired(t *testing.T) {
+func TestMemCacheExpired(t *testing.T) {
 	key := "cache_key"
 	val := testItem{
 		Key:   "Rohit",
 		Value: "Subedi",
 	}
-	cache, err := NewMemoryCache(5 * time.Second)
+	cache, err := NewMemCache(5 * time.Second, "0.0.0.0:11211")
 	assert.NoError(t, err)
 
 	err = cache.Set(key, val)
 	assert.NoError(t, err)
 	assert.True(t, cache.Has(key))
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(6 * time.Second)
 	_, err = cache.Pull(key)
 	assert.Error(t, err)
 }

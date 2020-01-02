@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/go-redis/redis/v7"
 )
 
@@ -17,6 +18,7 @@ var (
 	cacheTypeDefault  = "memory"
 	cacheTypeFile     = "file"
 	cacheTypeRedis    = "redis"
+	cacheTypeMemcache = "memcache"
 	defaultExpiration = 0 * time.Second
 )
 
@@ -44,14 +46,15 @@ type cacheItem struct {
 }
 
 type cache struct {
-	mu          sync.RWMutex
-	cacheType   string
-	expiration  time.Duration
-	items       map[string]cacheItem
-	filePath    string
-	cacheFiles  map[string]struct{}
-	redisClient *redis.Client
-	cleaner     *cacheCleaner
+	mu             sync.RWMutex
+	cacheType      string
+	expiration     time.Duration
+	items          map[string]cacheItem
+	filePath       string
+	cacheFiles     map[string]struct{}
+	redisClient    *redis.Client
+	memCacheClient *memcache.Client
+	cleaner        *cacheCleaner
 }
 
 type cacheCleaner struct {
@@ -60,7 +63,7 @@ type cacheCleaner struct {
 }
 
 // expiration time.Duration duration for cache to expire. 0*time.Second indicates the cache will never expire
-func NewMemoryCache(expiration time.Duration) (Cache, error) {
+func NewDefaultCache(expiration time.Duration) (Cache, error) {
 	var cleaner *cacheCleaner
 
 	if expiration <= defaultExpiration {
@@ -134,6 +137,18 @@ func NewRedisCache(expiration time.Duration, host, password string) (Cache, erro
 	}, nil
 }
 
+func NewMemCache(expiration time.Duration, server string) (Cache, error) {
+	if expiration <= defaultExpiration {
+		expiration = defaultExpiration
+	}
+
+	return &cache{
+		cacheType:      cacheTypeMemcache,
+		expiration:     expiration,
+		memCacheClient: memcache.New(server),
+	}, nil
+}
+
 // Delete deletes cache for the given key
 func (c *cache) Delete(key string) {
 	c.mu.Lock()
@@ -146,6 +161,8 @@ func (c *cache) Delete(key string) {
 		_ = os.Remove(c.filePath + "/" + key)
 	case cacheTypeRedis:
 		c.redisClient.Del(key)
+	case cacheTypeMemcache:
+		_ = c.memCacheClient.Delete(key)
 	}
 }
 
@@ -163,6 +180,8 @@ func (c *cache) Flush() {
 		}
 	case cacheTypeRedis:
 		c.redisClient.FlushAll()
+	case cacheTypeMemcache:
+		_ = c.memCacheClient.FlushAll()
 	}
 }
 
@@ -220,6 +239,14 @@ func (c *cache) set(key string, value interface{}) error {
 		if err := c.redisClient.Set(key, val, c.expiration).Err(); err != nil {
 			return err
 		}
+	case cacheTypeMemcache:
+		if err := c.memCacheClient.Set(&memcache.Item{
+			Key:        key,
+			Value:      val,
+			Expiration: int32(c.expiration.Seconds()),
+		}); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -261,6 +288,10 @@ func (c *cache) has(key string) bool {
 		if _, err := c.redisClient.Get(key).Result(); err != nil {
 			return false
 		}
+	case cacheTypeMemcache:
+		if _, err := c.memCacheClient.Get(key); err != nil {
+			return false
+		}
 	default:
 		return false
 	}
@@ -275,11 +306,13 @@ func (c *cache) Get(key string) ([]byte, error) {
 
 	switch c.cacheType {
 	case cacheTypeDefault:
-		return c.getMemoryCache(key, false)
+		return c.getDefaultCache(key, false)
 	case cacheTypeFile:
 		return c.getFileCache(key, false)
 	case cacheTypeRedis:
 		return c.getRedisCache(key, false)
+	case cacheTypeMemcache:
+		return c.getMemCache(key, false)
 	}
 
 	return nil, ErrCacheNotFound
@@ -293,18 +326,20 @@ func (c *cache) Pull(key string) ([]byte, error) {
 
 	switch c.cacheType {
 	case cacheTypeDefault:
-		return c.getMemoryCache(key, true)
+		return c.getDefaultCache(key, true)
 	case cacheTypeFile:
 		return c.getFileCache(key, true)
 	case cacheTypeRedis:
 		return c.getRedisCache(key, true)
+	case cacheTypeMemcache:
+		return c.getMemCache(key, true)
 	}
 
 	return nil, ErrCacheNotFound
 }
 
 // Returns value from memory cache for given key. Removes current cache depending on second parameter
-func (c *cache) getMemoryCache(key string, removeCurrent bool) ([]byte, error) {
+func (c *cache) getDefaultCache(key string, removeCurrent bool) ([]byte, error) {
 	item, found := c.items[key]
 	if !found {
 		return nil, ErrCacheNotFound
@@ -362,9 +397,27 @@ func (c *cache) getRedisCache(key string, removeCurrent bool) ([]byte, error) {
 	return []byte(val), nil
 }
 
+// Returns value from redis cache for given key. Removes current cache depending on second parameter
+func (c *cache) getMemCache(key string, removeCurrent bool) ([]byte, error) {
+	val, err := c.memCacheClient.Get(key)
+	if err != nil {
+		return nil, ErrCacheNotFound
+	}
+
+	if removeCurrent {
+		_ = c.memCacheClient.Delete(key)
+	}
+
+	return val.Value, nil
+}
+
 // This is a job that will execute each duration of the cache and clears the expired cache
 func (c *cache) cleanExpiredCache() {
 	if c.cleaner == nil {
+		return
+	}
+
+	if c.cacheType == cacheTypeMemcache || c.cacheType == cacheTypeRedis {
 		return
 	}
 
