@@ -215,7 +215,7 @@ func TestRedisCacheExpired(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, cache.Has(key))
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(6 * time.Second)
 	_, err = cache.Pull(key)
 	assert.Error(t, err)
 }

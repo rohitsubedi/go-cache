@@ -34,6 +34,8 @@ type Cache interface {
 	Get(key string) ([]byte, error)
 	Pull(key string) ([]byte, error)
 	Has(key string) bool
+	Delete(key string)
+	Flush()
 }
 
 type cacheItem struct {
@@ -132,6 +134,38 @@ func NewRedisCache(expiration time.Duration, host, password string) (Cache, erro
 	}, nil
 }
 
+// Delete deletes cache for the given key
+func (c *cache) Delete(key string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	switch c.cacheType {
+	case cacheTypeDefault:
+		delete(c.items, key)
+	case cacheTypeFile:
+		_ = os.Remove(c.filePath + "/" + key)
+	case cacheTypeRedis:
+		c.redisClient.Del(key)
+	}
+}
+
+// Flush deletes all the existing cache
+func (c *cache) Flush() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	switch c.cacheType {
+	case cacheTypeDefault:
+		c.items = make(map[string]cacheItem)
+	case cacheTypeFile:
+		for key := range c.cacheFiles {
+			_ = os.Remove(c.filePath + "/" + key)
+		}
+	case cacheTypeRedis:
+		c.redisClient.FlushAll()
+	}
+}
+
 // This will set the value to the key depending on the cache type user selects (memory, file, redis).
 // If cache already exists for given key, it will return error. Returns error if there are any
 func (c *cache) Add(key string, value interface{}) error {
@@ -199,7 +233,6 @@ func (c *cache) Has(key string) bool {
 	return c.has(key)
 }
 
-// This will return boolean if the cache exists and is valid
 func (c *cache) has(key string) bool {
 	switch c.cacheType {
 	case cacheTypeDefault:
@@ -329,6 +362,7 @@ func (c *cache) getRedisCache(key string, removeCurrent bool) ([]byte, error) {
 	return []byte(val), nil
 }
 
+// This is a job that will execute each duration of the cache and clears the expired cache
 func (c *cache) cleanExpiredCache() {
 	if c.cleaner == nil {
 		return
@@ -360,6 +394,7 @@ func (c *cache) cleanExpiredCache() {
 	}()
 }
 
+// go routine is stopped stop is set to true
 func stopCleaningRoutine(cleaner *cacheCleaner) {
 	cleaner.stop <- true
 }
