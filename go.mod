@@ -1,4 +1,4 @@
-module github.com/my/repo
+module github.com/rohitsubedi/go-cache
 
 go 1.13
 
